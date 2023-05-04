@@ -51,6 +51,11 @@ y_mono(:,18) = y(:,1);
 [y, Fs] = audioread("HAKEN - A Cell Divides (OFFICIAL VIDEO).mp3", [5760000, 8640000]);
 y_mono(:,20) = y(:,1);
 
+% Additional test songs
+
+[y, Fs] = audioread("For Whom The Bell Tolls (Remastered).mp3", [5760000, 8640000]);
+y_mono(:,21) = y(:,1);
+
 
 
 L = length(y); % define length of samples 
@@ -68,7 +73,7 @@ end
 
 % Make FFT of each song snippet (same procedure as cake exercise)
 
-for n = 1:20
+for n = 1:21
 
     FFT_mirrored(:,n) = abs(fft(y_mono(:,n),L));
     var = FFT_mirrored(:,n);
@@ -76,7 +81,7 @@ for n = 1:20
     FFT_trim(:,n) = FFT(1:60000);
     
     figure(1)
-    subplot(10,2,n)
+    subplot(11,2,n)
     plot(x_freq_trim, FFT_trim(:,n))
 
     % find number of peaks of FFT (one of the parameters with which we classify the songs)
@@ -85,9 +90,14 @@ for n = 1:20
    
     peak_num(:,n) = length(peaks);
 
-    figure(2)
-    subplot(10,2,n)
-    h(n,:) = histogram(x,buckets);
+    [prom_peaks, x] = findpeaks(FFT_trim(:,n),x_freq_trim,'MinPeakProminence',12000,'MinPeakDistance',1);
+   
+    prom_peak_num(:,n) = length(prom_peaks);
+
+
+    % figure(2)
+    % subplot(10,2,n)
+    % h(n,:) = histogram(x,buckets);
 
    % find max frequency where a peak occurs and average value of signal,
    % the other two values we will use to classify songs
@@ -100,27 +110,54 @@ end
 
 %%
 
+figure(3)
+
+subplot(2,2,1)
+hold on
+scatter(peak_num([1,3,5,7,9,11,13,15,17,19]), span([1,3,5,7,9,11,13,15,17,19]), 'red')
+scatter(peak_num([2,4,6,8,10,12,14,16,18,20]), span([2,4,6,8,10,12,14,16,18,20]), 'blue')
+scatter(peak_num(21), span(21), 'green')
+
+subplot(2,2,2)
+hold on
+scatter(avg([1,3,5,7,9,11,13,15,17,19]), peak_num([1,3,5,7,9,11,13,15,17,19]), 'red')
+scatter(avg([2,4,6,8,10,12,14,16,18,20]), peak_num([2,4,6,8,10,12,14,16,18,20]), 'blue')
+scatter(avg(21), peak_num(21), 'green')
+
+subplot(2,2,3)
+hold on
+scatter(avg([1,3,5,7,9,11,13,15,17,19]), span([1,3,5,7,9,11,13,15,17,19]), 'red')
+scatter(avg([2,4,6,8,10,12,14,16,18,20]), span([2,4,6,8,10,12,14,16,18,20]), 'blue')
+scatter(avg(21), span(21), 'green')
+
+subplot(2,2,4)
+hold on
+scatter(prom_peak_num([1,3,5,7,9,11,13,15,17,19]), span([1,3,5,7,9,11,13,15,17,19]), 'red')
+scatter(prom_peak_num([2,4,6,8,10,12,14,16,18,20]), span([2,4,6,8,10,12,14,16,18,20]), 'blue')
+scatter(prom_peak_num(21), span(21), 'green')
+
+
 % Define the classes of each song (we will use 8 songs to train and 13 to test)
 
-class = ['jazz'; 'rock'; 'jazz'; 'rock'; 'jazz'; 'rock'; 'jazz'; 'rock';];
+class = ['jazz'; 'rock'; 'jazz'; 'rock'; 'jazz'; 'rock'; 'jazz'; 'rock';'jazz'; 'rock'; 'jazz'; 'rock'];
 
 % Create input array of data
 
-data = transpose([peak_num(1:8);avg(1:8);span(1:8)]);
+data = transpose([peak_num(1:12);avg(1:12);span(1:12);prom_peak_num(1:12)]);
 
 % make KNN model
 
 Mdl = fitcknn(data,class,'NumNeighbors',3,'Standardize',1);
 
-prediction = ones(1,20);
+prediction = ones(1,21);
 
 prediction = string(prediction);
 
 % predict the other 12 songs
 
-for k = 11:20
+for k = 13:21
 
-prediction(k) = predict(Mdl, [peak_num(k) avg(k) span(k)]);
+prediction(k) = predict(Mdl, [peak_num(k) avg(k) span(k) prom_peak_num(k)]);
 
 end
 
