@@ -1,0 +1,5 @@
+archive/
+*.wav
+Music/archive.zip
+Music/rock_hiphop_blues/Data/features_30_sec.csv
+Music/rock_hiphop_blues/Data/features_3_sec.csv
