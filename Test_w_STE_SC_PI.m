@@ -18,7 +18,7 @@ AD_hiphop = audioDatastore(folder_hiphop,'FileExtensions','.wav');
 
 %%
 % Ploting short-time enrgy of three genres - rock, blues and hiphop
-[y,Fs] = audioread("archive\Data\genres_original\blues\blues.00025.wav");
+[y,Fs] = audioread("Music\archive\Data\genres_original\blues\blues.00025.wav");
     
 aFE = audioFeatureExtractor( ...
     SampleRate=Fs, ...
@@ -48,7 +48,8 @@ subplot(2,2,1)
 hold on
 plot(features(:,idx.spectralCentroid))
 title("Spectral Centroid - Blues")
-%xlabel("Time (s)")
+xlabel("Time")
+ylabel("Centroid (Hz)")
 
 figure(3)
 subplot(2,2,1)
@@ -56,7 +57,7 @@ hold on
 plot(features(:,idx.pitch))
 title("Pitch - Blues")
 
-[y,Fs] = audioread("archive\Data\genres_original\rock\rock.00001.wav");
+[y,Fs] = audioread("Music\archive\Data\genres_original\rock\rock.00001.wav");
 features = extract(aFE,y);
 idx = info(aFE);
 
@@ -65,14 +66,16 @@ subplot(2,2,2)
 hold on
 plot(features(:,idx.shortTimeEnergy))
 title("Short-Time Energy - Rock")
-xlabel("Time (s)")
+xlabel("Time")
+ylabel("Centroid (Hz)")
 
 figure(2)
 subplot(2,2,2)
 hold on
 plot(features(:,idx.spectralCentroid))
 title("Spectral Centroid - Rock")
-%xlabel("Time (s)")
+xlabel("Time")
+ylabel("Centroid (Hz)")
 
 figure(3)
 subplot(2,2,2)
@@ -81,7 +84,7 @@ plot(features(:,idx.pitch))
 title("Pitch - Rock")
 
 
-[y,Fs] = audioread("archive\Data\genres_original\hiphop\hiphop.00025.wav");
+[y,Fs] = audioread("Music\archive\Data\genres_original\hiphop\hiphop.00025.wav");
 features = extract(aFE,y);
 idx = info(aFE);
 
@@ -97,7 +100,8 @@ subplot(2,2,3)
 hold on
 plot(features(:,idx.spectralCentroid))
 title("Spectral Centroid - HipHop")
-%xlabel("Time (s)")
+xlabel("Time")
+ylabel("Centroid (Hz)")
 
 figure(3)
 subplot(2,2,3)
@@ -150,13 +154,13 @@ for n = 1:song_count
     [prom_peaks, x] = findpeaks(FFT_trim(:,n),x_freq_trim,'MinPeakProminence',1350,'MinPeakDistance',1);
     data_prom_peak_num(:,n) = length(prom_peaks);
     
-    %Max frequency where a peak occurs and average value of signal (parameter for classification)
+    %Max frequency where a peak occurs and average value of signal
     data_span(:,n) = max(x);
     data_avg(:,n) = mean(FFT_trim(:,n));
 
-    %Extracting the short time energy
+
+    %Extracting features using audio feature extractor
     features = extract(aFE,audio_all(:,n));
-    idx = info(aFE);
     
     %Getting the Prom peak number, average value and max value
     [ste_prom_peaks, x] = findpeaks(features(:,3),'MinPeakProminence',35,'MinPeakDistance',1);
@@ -172,13 +176,11 @@ for n = 1:song_count
     data_SC_peak_num(:,n) = length(ce_prom_peaks);
     data_SC_avg(:,n) = mean(features(:,1));
 
-
 end
-disp('Peak number, Span and Average = done')
+disp('Parameter/feature extraction = done')
 
 %%
 % Ploting data
-
 figure(4)
 subplot(2,2,1)
 hold on
@@ -218,6 +220,7 @@ legend('Blues', 'Rock', 'HipHop')
 
 
 figure(5)
+%Ploting short time enrgy peaknumber vs max and average
 subplot(2,2,1)
 hold on
 scatter(data_STE_peak_num(1:84), data_STE_max(1:84), 'red') %Blues
@@ -236,6 +239,7 @@ xlabel('Average of STE')
 ylabel('Number of peaks')
 legend('Blues', 'Rock', 'HipHop')
 
+%Ploting spectral centroid peak number vs average
 subplot(2,2,3)
 hold on
 scatter(data_SC_peak_num(1:84), data_SC_avg(1:84), 'red') %Blues
@@ -265,6 +269,10 @@ disp('Array with classes = done')
 % Shuffling both arrays so they still match up when shuffled
 disp('Shufling the data')
 
+%Current used classification parameters:
+        % short time energy - average value and max value
+        % spectral centroid - average and peak number
+        % pitch - average value
 data_all = transpose([ ...
     data_STE_max(1:song_count); data_STE_avg(1:song_count); ...
     data_SC_avg(1:song_count); data_SC_peak_num; ...
@@ -280,7 +288,8 @@ Mdl_y = class(P);
     clear FFT FFT_trim FFT_mirrored
     clear data_SC_peak_num data_SC_avg data_Pitch_avg
 
-% Spliting the data into train and test, not actually needed
+% Spliting the data into train and test, will use when further testing will
+% be done
     %cv = cvpartition(size(Mdl_x,1),"HoldOut",0.2);
     %idx = cv.test;
     %Mdl_x_train = Mdl_x(cv.training,:);
