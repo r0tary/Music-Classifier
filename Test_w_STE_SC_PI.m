@@ -280,14 +280,10 @@ disp('Shufling the data')
         % spectral centroid - average and peak number
         % pitch - average value
 
-        data_all = transpose([ ...
+ data_all = transpose([ ...
     data_STE_max(1:song_count); data_STE_avg(1:song_count); ...
     data_SC_avg(1:song_count); data_SC_peak_num(1:song_count); ...
     data_Pitch_avg(1:song_count)]);
-
-P = randperm(length(data_all));
-Mdl_x = data_all(P,:);
-Mdl_y = class(P);
 
 %clearing un-used arrays, save a bit of RAM space
     clear data_STE_max data_STE_avg data_STE_peak_num
@@ -295,9 +291,14 @@ Mdl_y = class(P);
     clear FFT FFT_trim FFT_mirrored
     clear data_SC_peak_num data_SC_avg data_Pitch_avg
 
+%%
+P = randperm(length(data_all));
+Mdl_x = data_all(P,:);
+Mdl_y = class(P);
+
 % Spliting the data into train and test, will use when further testing will
 % be done
-    cv = cvpartition(size(Mdl_x,1),"HoldOut",0.2);
+    cv = cvpartition(size(Mdl_x,1),"HoldOut",0.20);
     idx = cv.test;
     Mdl_x_train = Mdl_x(cv.training,:);
     Mdl_y_train = Mdl_y(cv.training,:);
@@ -308,12 +309,12 @@ Mdl_y = class(P);
 disp('Training the model')
 % Training the model
 %Mdl = fitcknn(Mdl_x, Mdl_y,'NumNeighbors',2,'Standardize',1);
-Mdl = fitcknn(Mdl_x_train, Mdl_y_train,'NumNeighbors',7,'Standardize',1);
+Mdl = fitcknn(Mdl_x_train, Mdl_y_train,'NumNeighbors',6,'Standardize',1);
 
 CV_KNN = crossval(Mdl);
 classError = kfoldLoss(CV_KNN)
 
-prediction = ones(1,21);
+prediction = ones(1,60);
 prediction = string(prediction);
 
 for k = 1:60
