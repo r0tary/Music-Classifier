@@ -41,7 +41,7 @@ subplot(2,2,1)
 hold on
 plot(features(:,idx.shortTimeEnergy))
 title("Short-Time Energy - Blues")
-xlabel("Time (s)")
+xlabel("Time")
 
 figure(2)
 subplot(2,2,1)
@@ -55,9 +55,11 @@ figure(3)
 subplot(2,2,1)
 hold on
 plot(features(:,idx.pitch))
+xlim([0 300])
 title("Pitch - Blues")
+xlabel("Time")
 
-[y,Fs] = audioread("Music\archive\Data\genres_original\rock\rock.00001.wav");
+[y,Fs] = audioread("Music\archive\Data\genres_original\rock\rock.00025.wav");
 features = extract(aFE,y);
 idx = info(aFE);
 
@@ -67,7 +69,7 @@ hold on
 plot(features(:,idx.shortTimeEnergy))
 title("Short-Time Energy - Rock")
 xlabel("Time")
-ylabel("Centroid (Hz)")
+
 
 figure(2)
 subplot(2,2,2)
@@ -81,7 +83,9 @@ figure(3)
 subplot(2,2,2)
 hold on
 plot(features(:,idx.pitch))
+xlim([0 300])
 title("Pitch - Rock")
+xlabel("Time")
 
 
 [y,Fs] = audioread("Music\archive\Data\genres_original\hiphop\hiphop.00025.wav");
@@ -93,7 +97,7 @@ subplot(2,2,3)
 hold on
 plot(features(:,idx.shortTimeEnergy))
 title("Short-Time Energy - HipHop")
-xlabel("Time (s)")
+xlabel("Time")
 
 figure(2)
 subplot(2,2,3)
@@ -107,29 +111,31 @@ figure(3)
 subplot(2,2,3)
 hold on
 plot(features(:,idx.pitch))
+xlim([0 300])
 title("Pitch - HipHop")
+xlabel("Time")
 
 %%
 %Reading audio files
-for i = 1:84
+for i = 1:100
     [audio_Blues(:,i), Fs] = audioread(string(AD_blues.Files(i,1)),[1,660000]);
     fprintf('Blues - Audio file Nr. %d\n',size(audio_Blues,2))
 end
 
-for i = 1:84
+for i = 1:100
     [audio_rock(:,i), Fs] = audioread(string(AD_rock.Files(i,1)),[1,660000]);
     fprintf('Metal - Audio file Nr. %d\n',size(audio_rock,2))
 end
 
-for i = 1:84
+for i = 1:100
     [audio_hiphop(:,i), Fs] = audioread(string(AD_hiphop.Files(i,1)),[1,660000]);
     fprintf('Hip Hop - Audio file Nr. %d\n',size(audio_hiphop,2))
 end
 
 audio_all = [audio_Blues audio_rock audio_hiphop];%Combining into a single array
+song_count = length(audio_all(1,:));
+L = length(audio_all(:,1));         %length of samples 
 
-L = length(audio_all(:,1));         %length of samples
-song_count = length(audio_all(1,:)); 
 x_freq = Fs.*(0:L/2-1)/L;           % Calculate frequencies for X axis
 x_freq_trim = x_freq(1:60000);      % Trim frequencies to audible spectrum (1000Hz)
 
@@ -147,7 +153,7 @@ for n = 1:song_count
     FFT = var(1:L/2);
     FFT_trim(:,n) = FFT(1:60000);
    
-    %Find number of peaks (parameter for classification)
+    %Find number of peaks
     [peaks, x] = findpeaks(FFT_trim(:,n),x_freq_trim,'MinPeakProminence',1000,'MinPeakDistance',1);
     data_peak_num(:,n) = length(peaks);
 
@@ -158,20 +164,20 @@ for n = 1:song_count
     data_span(:,n) = max(x);
     data_avg(:,n) = mean(FFT_trim(:,n));
 
-
     %Extracting features using audio feature extractor
     features = extract(aFE,audio_all(:,n));
     
-    %Getting the Prom peak number, average value and max value
+    %Getting the Prom peak number, average value and max value of
+    %Short-Time Energy
     [ste_prom_peaks, x] = findpeaks(features(:,3),'MinPeakProminence',35,'MinPeakDistance',1);
     data_STE_peak_num(:,n) = length(ste_prom_peaks);
     data_STE_avg(:,n) = mean(features(:,3));
     data_STE_max(:,n) = max(features(:,3));
 
-    %Extracting Pitch
+    %Extracting avg Pitch
     data_Pitch_avg(:,n) = mean(features(:,2));
 
-    %Extracting spectral centroid
+    %Extracting average and peak number of spectral centroid
     [ce_prom_peaks, x] = findpeaks(features(:,1),'MinPeakProminence',1500,'MinPeakDistance',1);
     data_SC_peak_num(:,n) = length(ce_prom_peaks);
     data_SC_avg(:,n) = mean(features(:,1));
@@ -252,16 +258,16 @@ legend('Blues', 'Rock', 'HipHop')
 %%
 % Creating a array with classes coresponding to audio data
 disp('Creating an array with coresponding classes');
-for i = 1:84;
+for i = 1:100;
     class(i,:) = "Blues"; 
 end
 
-for i = 1:84;
-    class(84+i,:) = "Rock"; 
+for i = 1:100;
+    class(100+i,:) = "Rock"; 
 end
 
-for i = 1:84;
-    class(168+i,:) = "Blues"; 
+for i = 1:100;
+    class(200+i,:) = "HipHop"; 
 end
 disp('Array with classes = done')
 
@@ -273,10 +279,11 @@ disp('Shufling the data')
         % short time energy - average value and max value
         % spectral centroid - average and peak number
         % pitch - average value
-data_all = transpose([ ...
+
+        data_all = transpose([ ...
     data_STE_max(1:song_count); data_STE_avg(1:song_count); ...
-    data_SC_avg(1:song_count); data_SC_peak_num; ...
-    data_Pitch_avg]);
+    data_SC_avg(1:song_count); data_SC_peak_num(1:song_count); ...
+    data_Pitch_avg(1:song_count)]);
 
 P = randperm(length(data_all));
 Mdl_x = data_all(P,:);
@@ -290,19 +297,33 @@ Mdl_y = class(P);
 
 % Spliting the data into train and test, will use when further testing will
 % be done
-    %cv = cvpartition(size(Mdl_x,1),"HoldOut",0.2);
-    %idx = cv.test;
-    %Mdl_x_train = Mdl_x(cv.training,:);
-    %Mdl_y_train = Mdl_y(cv.training,:);
-    %Mdl_x_test = Mdl_x(cv.test,:);
-    %Mdl_y_test = Mdl_y(cv.test,:);
+    cv = cvpartition(size(Mdl_x,1),"HoldOut",0.2);
+    idx = cv.test;
+    Mdl_x_train = Mdl_x(cv.training,:);
+    Mdl_y_train = Mdl_y(cv.training,:);
+    Mdl_x_test = Mdl_x(cv.test,:);
+    Mdl_y_test = Mdl_y(cv.test,:);
 
 %%
 disp('Training the model')
 % Training the model
-Mdl = fitcknn(Mdl_x, Mdl_y,'NumNeighbors',2,'Standardize',1);
+%Mdl = fitcknn(Mdl_x, Mdl_y,'NumNeighbors',2,'Standardize',1);
+Mdl = fitcknn(Mdl_x_train, Mdl_y_train,'NumNeighbors',7,'Standardize',1);
 
 CV_KNN = crossval(Mdl);
 classError = kfoldLoss(CV_KNN)
 
+prediction = ones(1,21);
+prediction = string(prediction);
 
+for k = 1:60
+    prediction(k) = predict(Mdl, Mdl_x_test(k,:));
+end
+
+prediction = transpose(prediction);
+
+for k = 1:60
+    comp(k) = strcmp(Mdl_y_test(k,1),prediction(k,1));
+end
+
+acc = sum(comp)/60
